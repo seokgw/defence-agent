@@ -26,7 +26,9 @@ export function createStudentView() {
         const labels = kind === 'device'
           ? { compliant: '보안 기준 충족', noncompliant: '보안 기준 미충족', unknown: '확인 불가' }
           : { active: '활성', expired: '만료', revoked: '철회됨', unknown: '확인 불가' };
-        return labels[value] || '확인 불가';
+        const code = typeof value === 'string' ? value : 'unknown';
+        const label = Object.hasOwn(labels, code) ? labels[code] : '확인 불가';
+        return `${label} (${code})`;
       };
       const errorMessage = (resource) => {
         const message = typeof resource?.error?.message === 'string' ? resource.error.message : '오류 내용을 확인할 수 없습니다.';
