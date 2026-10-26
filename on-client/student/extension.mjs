@@ -715,6 +715,96 @@ export function createStudentView() {
 
       return root;
     },
-    renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
+    renderAction({ status, event, actionId, target, receipt, observation, message, confirmationExpiresAt, error } = {}) {
+      const root = document.createElement('section');
+      root.className = 'student-action';
+      const addText = (text, className) => {
+        const node = document.createElement('p');
+        if (className) node.className = className;
+        node.textContent = text;
+        root.append(node);
+        return node;
+      };
+      const safeMessage = (value) => {
+        const safe = typeof value === 'string' && value.length > 0 && value.length <= 500
+          && !/(?:Bearer\s+\S+|sk-(?:proj-|ant-|svcacct-)?[A-Za-z0-9_-]{8,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_ -]?key|authorization|password|비밀번호|토큰)\s*[:=]\s*\S+)/i.test(value)
+          && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value);
+        return safe ? value : '안전한 메시지를 확인할 수 없습니다.';
+      };
+      const displayValue = (value) => {
+        if (typeof value === 'string' && value.length > 0) return value;
+        if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+        return null;
+      };
+      const appendValue = (label, value) => {
+        const shown = displayValue(value);
+        if (shown !== null) addText(`${label}: ${shown}`);
+      };
+      const safeCode = (value) => typeof value === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(value)
+        ? value
+        : 'ACTION_REQUEST_UNVERIFIED';
+      const eventId = displayValue(event?.id);
+      const requestId = displayValue(receipt?.requestId);
+      if (eventId !== null) root.setAttribute('data-student-action-event', eventId);
+      if (requestId !== null) root.setAttribute('data-student-action-request', requestId);
+
+      if (status === 'idle') {
+        addText('아직 미실행(idle). 보안 조치 요청은 전송되지 않았습니다.');
+      } else if (status === 'loading') {
+        addText('조치 준비 또는 결과 조회 중(loading). 처리 결과는 아직 확인되지 않았습니다.');
+      } else if (status === 'prepared') {
+        addText('준비됨·미실행(prepared). 서버에 전달되지 않았습니다.');
+        appendValue('확인 기한', confirmationExpiresAt);
+      } else if (status === 'executing') {
+        addText('서버에 전달 중(executing). 처리 결과는 아직 확인되지 않았으며 완료나 성공을 뜻하지 않습니다.');
+      } else if (status === 'pending') {
+        addText('서버 접수·처리 중(pending). ACK는 서버 접수 확인이며 효과 확인이 아닙니다.');
+        addText('처리 결과는 아직 확인되지 않았습니다.');
+      } else if (status === 'succeeded' && observation?.effectApplied === true) {
+        addText('효과 확인(succeeded).');
+        appendValue('관측 시각', observation.observedAt);
+        addText('effectApplied: true');
+      } else if (status === 'succeeded') {
+        addText('결과 불명(unknown). effectApplied: true가 관측되지 않아 효과를 확인할 수 없습니다.');
+        addText('제공 화면의 「연동 시스템 결과만 재조회」를 사용해 결과를 확인하세요.');
+      } else if (status === 'denied') {
+        addText('연동 시스템 거절(denied).');
+        if (displayValue(message) !== null) addText(`사유: ${safeMessage(message)}`);
+      } else if (status === 'failed') {
+        addText('연동 시스템 실패(failed).');
+        if (displayValue(message) !== null) addText(`실패 사유: ${safeMessage(message)}`);
+      } else if (status === 'unknown') {
+        addText('결과 불명(unknown). 효과가 없다고도 성공했다고도 판단할 수 없습니다.');
+        addText('제공 화면의 「연동 시스템 결과만 재조회」를 사용해 결과를 확인하세요.');
+      } else if (status === 'expired') {
+        addText('확인 기한 지남(expired). 조치를 다시 준비하세요.');
+      } else if (status === 'error') {
+        addText('요청 처리 안 됨(error). 보안 조치가 처리되지 않았습니다.');
+        addText(`오류 코드: ${safeCode(error?.code)}`);
+        addText(`오류 메시지: ${safeMessage(error?.message)}`);
+      } else {
+        const receivedStatus = typeof status === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(status)
+          ? status
+          : 'unknown';
+        addText(`결과 불명(unknown). 알 수 없는 상태(${receivedStatus})입니다.`);
+        addText('효과가 없다고 단정하지 마세요. 제공 화면의 「연동 시스템 결과만 재조회」를 사용해 결과를 확인하세요.');
+      }
+
+      appendValue('사건 ID', eventId);
+      if (Array.isArray(event?.evidence) && event.evidence.length > 0) {
+        const evidenceIds = event.evidence
+          .map((item) => displayValue(item?.id))
+          .filter((value) => value !== null);
+        if (evidenceIds.length > 0) addText(`근거 ID: ${evidenceIds.join(', ')}`);
+      }
+      appendValue('조치 ID', actionId);
+      appendValue('대상 ID', target?.id);
+      appendValue('대상 세대', target?.generation);
+      appendValue('요청 ID', requestId);
+      appendValue('접수 ID', receipt?.receiptId);
+      appendValue('버전', receipt?.version);
+
+      return root;
+    },
   };
 }
