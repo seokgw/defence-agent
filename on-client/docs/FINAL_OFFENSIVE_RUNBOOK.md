@@ -1,3 +1,5 @@
+> 설치 진행 갱신: 공식 R7 배포 묶음을 추가로 확인해 체크섬·manifest·DRY_RUN_READY 검증 후 승인 host와 실행 환경을 설치했습니다. 아래의 PROVIDED_RUNTIME_NOT_INSTALLED·아이콘 미지정은 이전 확인 시점의 기록입니다. 현재 설치 준비는 INSTALLATION_PREPARATION.md를 따릅니다.
+
 # 코덱스 — 마지막 총공세 실행·시연 기록
 
 2026-10-26. 선택: **관제 대시보드형 + 기본 포장·바로가기**. 공식 안내: https://aleph-omega.vercel.app/defense . 총공세는 공격 실행 기능이 아니라 22단계 이후 앱 완성을 위한 7개 권장 제작 과제다. 기존 13~22단계 커밋과 인증 자료는 보존했다.

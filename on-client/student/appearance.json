@@ -6,5 +6,6 @@
     "accent": "#2563eb",
     "surface": "#ffffff",
     "background": "#f2f5fa"
-  }
+  },
+  "icon": "brand-icon.png"
 }
