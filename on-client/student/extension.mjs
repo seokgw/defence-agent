@@ -1,6 +1,104 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
-export function createStudentView() {
+export function createStudentView({ api, onChange } = {}) {
+  // 총공격 학생 확장: 제공 읽기 전용 실측을 요약하고 이번 탭의 기록만 비교한다.
+  let pc = { status: 'idle', data: null };
+  const history = [];
+  let expiryTimer;
+  const number = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  const count = value => Number.isSafeInteger(value) && value >= 0;
+  const gib = value => `${(value / 1073741824).toFixed(1)} GiB`;
+  const time = value => `${new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} (한국 시간)`;
+  const node = (tag, text, className) => {
+    const element = document.createElement(tag);
+    if (text !== undefined) element.textContent = text;
+    if (className) element.className = className;
+    return element;
+  };
+  function metricsOf(data) {
+    const m = data?.metrics ?? {};
+    const cpu = m.cpu?.state === 'ok' && number(m.cpu.usagePercent) && m.cpu.usagePercent <= 100 && m.cpu.sampleMs === 200 ? m.cpu : null;
+    const memory = m.memory?.state === 'ok' && number(m.memory.usedBytes) && number(m.memory.totalBytes) && m.memory.totalBytes > 0 && m.memory.usedBytes <= m.memory.totalBytes ? m.memory : null;
+    const disk = m.disk?.state === 'ok' && number(m.disk.freeBytes) && number(m.disk.totalBytes) && m.disk.totalBytes > 0 && m.disk.freeBytes <= m.disk.totalBytes ? m.disk : null;
+    const network = m.network?.state === 'ok' && count(m.network.interfaceCount) && count(m.network.ipv4Count) ? m.network : null;
+    const profiles = m.firewall?.profiles;
+    const firewall = m.firewall?.state === 'ok' && Array.isArray(profiles) && profiles.length === 3 && ['Domain','Private','Public'].every(name => profiles.filter(p => p?.name === name && typeof p.enabled === 'boolean').length === 1) ? profiles : null;
+    const e = m.events;
+    const events = e?.state === 'ok' && count(e.warningCount) && count(e.errorCount) && e.warningCount + e.errorCount <= 5000 && e.sampleLimit === 5000 && typeof e.truncated === 'boolean' && typeof e.since === 'string' && Number.isFinite(Date.parse(e.since)) ? e : null;
+    return { cpu, memory, disk, network, firewall, events };
+  }
+  function changed() { if (typeof onChange === 'function') onChange(); }
+  async function refreshPc() {
+    if (pc.status === 'loading') return;
+    clearTimeout(expiryTimer);
+    pc = { status: 'loading', data: null };
+    changed();
+    let result;
+    try { result = typeof api?.get === 'function' ? await api.get('/api/pc/status') : { ok: false, error: { code: 'NOT_ALLOWED' } }; }
+    catch { result = { ok: false }; }
+    const data = result?.data;
+    if (result?.ok !== true) pc = { status: result?.error?.code === 'NOT_ALLOWED' ? 'unsupported' : 'failed', data: null };
+    else if (data?.schema !== 'aleph.on.pc-status.v1' || data.source !== 'local-pc' || typeof data.measuredAt !== 'string' || !/(Z|[+-]\d{2}:\d{2})$/.test(data.measuredAt) || !Number.isFinite(Date.parse(data.measuredAt))) pc = { status: 'invalid', data: null };
+    else {
+      pc = { status: 'ok', data };
+      const m = metricsOf(data);
+      const age = Date.now() - Date.parse(data.measuredAt);
+      if (age >= -5000 && age <= 60000 && (m.cpu || m.memory || m.disk)) {
+        history.unshift({ measuredAt: data.measuredAt, cpu: m.cpu?.usagePercent ?? null, memory: m.memory ? m.memory.usedBytes / m.memory.totalBytes * 100 : null, disk: m.disk?.freeBytes ?? null });
+        history.splice(12);
+        expiryTimer = setTimeout(changed, Math.max(1, 60001 - age));
+      }
+    }
+    changed();
+    const button = document.getElementById('codex-pc-refresh');
+    if (document.activeElement === document.body || document.activeElement?.id === 'codex-pc-refresh') button?.focus();
+  }
+  function renderPcDashboard(engineMode) {
+    const root = node('section', undefined, 'card');
+    root.setAttribute('aria-label', '코덱스 관제 대시보드');
+    root.append(node('h3', '코덱스 · 내 PC 관제 대시보드'));
+    root.append(node('p', '학생 추가 기능: 제공 실측의 네 가지 요약, 최근 측정 비교, 읽기 전용 관찰 기록. 자동 조회·설정 변경·외부 전송은 없습니다.', 'muted'));
+    const button = node('button', '다시 조회');
+    button.id = 'codex-pc-refresh'; button.type = 'button'; button.disabled = pc.status === 'loading';
+    button.addEventListener('click', refreshPc); root.append(button);
+    const age = pc.data ? Date.now() - Date.parse(pc.data.measuredAt) : NaN;
+    const fresh = pc.status === 'ok' && age >= -5000 && age <= 60000;
+    const status = pc.status === 'loading' ? '측정 중 — 잠시 기다려 주세요.' : pc.status === 'failed' ? '조회 실패 (PC_REQUEST_FAILED). 예시 값으로 대체하지 않았습니다. 다시 조회를 직접 누르세요.' : pc.status === 'unsupported' ? '지원 없음 (NOT_ALLOWED). 제공 「내 PC 상태」와 시작 틀 버전을 확인하세요.' : pc.status === 'invalid' ? '확인 불가 (PC_SHAPE_UNVERIFIED). 응답의 출처·시각·형식을 확인하지 못했습니다.' : pc.status === 'ok' && !fresh ? '오래된 측정 또는 시각 불일치 — 현재 값으로 표시하지 않습니다. 다시 조회를 누르세요.' : fresh ? '실제 PC 조회 응답 수신 — 항목별 수집 여부를 아래에서 확인하세요.' : '조회 전 — 확인 불가. 다시 조회를 누르면 이 PC의 값을 읽습니다.';
+    const statusNode = node('p', status); statusNode.setAttribute('role', 'status'); statusNode.setAttribute('aria-live', 'polite'); root.append(statusNode);
+    if (pc.data) root.append(node('p', `측정 시각: ${time(pc.data.measuredAt)} · 출처: local-pc / 제공 GET /api/pc/status · 현재 값 표시 기준: 60초 이내`));
+    const m = fresh ? metricsOf(pc.data) : {};
+    if (fresh) { const collected = Object.values(m).filter(Boolean).length; root.append(node('p', '실측 수집 항목: ' + collected + '/6 · 확인 불가: ' + (6 - collected) + '개. 응답 수신과 항목 수집 성공을 구분합니다.')); }
+    const cards = node('div', undefined, 'grid-2');
+    const summaries = [
+      ['CPU 사용률', m.cpu ? `${m.cpu.usagePercent.toFixed(1)}% · 200ms 표본` : '확인 불가'],
+      ['메모리 사용량', m.memory ? `${gib(m.memory.usedBytes)} / ${gib(m.memory.totalBytes)} · ${(m.memory.usedBytes / m.memory.totalBytes * 100).toFixed(1)}%` : '확인 불가'],
+      ['작업 디스크 남은 공간', m.disk ? `${gib(m.disk.freeBytes)} / ${gib(m.disk.totalBytes)}` : '확인 불가'],
+      ['SDP 연결 상태', engineMode === 'connected' ? '보안 엔진 연결됨 (connected) · SDP 원천은 별도 확인' : engineMode === 'demo' ? '예제 자료 (demo) · 실제 SDP 연결 아님' : 'SDP 미연결 또는 확인 불가 · PC 측정과 별도'],
+    ];
+    for (const [title, text] of summaries) { const card = node('section', undefined, 'card'); card.append(node('h4', title), node('p', text)); cards.append(card); }
+    root.append(cards);
+    root.append(node('h4', '네트워크·방화벽·Windows 관찰'));
+    root.append(node('p', m.network ? `네트워크 구성: 인터페이스 ${m.network.interfaceCount}개 · IPv4 구성 ${m.network.ipv4Count}개. 인터넷 연결 성공 검사는 아닙니다.` : '네트워크 구성: 확인 불가. 제공 「내 PC 상태」의 항목별 실패 이유를 확인하세요.'));
+    root.append(node('p', m.firewall ? `방화벽: ${m.firewall.map(p => `${p.name} ${p.enabled ? '켜짐' : '꺼짐'}`).join(' · ')}. 읽기 전용 설정 관찰이며 안전 판정이 아닙니다.` : '방화벽: 확인 불가. 일반 권한의 수집 결과를 확인하세요. 권한을 올리거나 설정을 바꾸지 않습니다.'));
+    root.append(node('p', m.events ? `Windows System·Application: 경고 ${m.events.warningCount}건 · 오류 ${m.events.errorCount}건 · ${time(m.events.since)} 이후 · 최대 ${m.events.sampleLimit}건${m.events.truncated ? '의 일부 집계' : ' 범위'}. 침해·공격 탐지 결과가 아닙니다.` : 'Windows 기록: 확인 불가. 제공 카드의 오류·시간 초과·권한 안내를 확인하세요. 침해 여부를 추정하지 않습니다.'));
+    root.append(node('h4', '최근 측정 추이 — 이 탭의 실측 최대 12회'));
+    root.append(node('p', '과거 성공 응답의 수집 시각을 비교합니다. 현재 값이 아니며 새로고침·종료 시 사라집니다. 0이나 예시 값으로 채우지 않습니다.', 'muted'));
+    const list = node('ol');
+    for (const sample of history) {
+      const row = node('li', `${time(sample.measuredAt)} · CPU ${sample.cpu === null ? '확인 불가' : `${sample.cpu.toFixed(1)}%`} · 메모리 ${sample.memory === null ? '확인 불가' : `${sample.memory.toFixed(1)}%`} · 디스크 여유 ${sample.disk === null ? '확인 불가' : gib(sample.disk)}`);
+      if (sample.cpu !== null) { const meter = node('meter'); meter.min = 0; meter.max = 100; meter.value = sample.cpu; meter.setAttribute('aria-label', `${time(sample.measuredAt)} CPU 사용률 ${sample.cpu.toFixed(1)}%`); row.append(meter); }
+      list.append(row);
+    }
+    if (!history.length) list.append(node('li', '아직 비교할 실측 기록이 없습니다.'));
+    root.append(list);
+    if (history.length >= 2) {
+      const now = history[0], before = history[1];
+      const delta = (a, b) => a === null || b === null ? '확인 불가' : `${a - b >= 0 ? '+' : ''}${(a - b).toFixed(1)}%p`;
+      root.append(node('p', `직전 측정 대비: CPU ${delta(now.cpu, before.cpu)} · 메모리 ${delta(now.memory, before.memory)}. 짧은 관찰이며 원인·침해 판정이 아닙니다.`));
+    }
+    return root;
+  }
+
   return {
     renderIdentity({ me, devices, sessions }) {
       const root = document.createElement('section');
@@ -456,6 +554,7 @@ export function createStudentView() {
       });
       diagnosticSection.append(copyButton);
       root.append(diagnosticSection);
+      root.prepend(renderPcDashboard(mode));
       return root;
     },
     renderVulnerabilities({ status, mode, data, error } = {}) {
