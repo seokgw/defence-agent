@@ -468,13 +468,12 @@ export function createStudentView() {
         node.textContent = text;
         root.append(node);
       };
-      const modes = {
-        connected: '서비스 모드: connected',
-        demo: '예제 자료 (demo) · 실제 앱 권한 확인이 아닙니다.',
-        disconnected: '연결 없음 (disconnected)',
-        unknown: '확인 불가 (unknown)',
+      const engineModes = {
+        connected: '보안 이벤트 엔진: 연결됨 (connected)',
+        demo: '보안 이벤트 엔진: 예제 자료 (demo)',
+        disconnected: '보안 이벤트 엔진: 연결 없음 (disconnected)',
+        unknown: '보안 이벤트 엔진: 확인 불가 (unknown)',
       };
-      addText(modes[mode] || modes.unknown, 'student-ai-connection-mode');
 
       if (status === 'idle') {
         addText('AI 연결 점검 전', 'student-ai-connection-idle');
@@ -485,7 +484,7 @@ export function createStudentView() {
         if (authorization === 'test') {
           addText('시험 연결 점검(test)', 'student-ai-connection-ok');
         } else if (authorization === 'verified') {
-          addText('앱 권한 확인 후 점검(verified)', 'student-ai-connection-ok');
+          addText('AI 연결 정상 · 앱 권한 확인 후 점검(verified)', 'student-ai-connection-ok');
         } else {
           addText('연결 점검 결과 확인 불가 (unknown)', 'student-ai-connection-unverified');
         }
@@ -494,9 +493,6 @@ export function createStudentView() {
           : '확인 불가';
         addText(`응답 모델 수: ${modelCount}`);
         addText(`점검 시각: ${typeof checkedAt === 'string' && checkedAt ? checkedAt : '확인 불가'}`);
-        if (mode === 'demo') {
-          addText('예제 자료이므로 실제 AI 연결의 증거가 아닙니다.', 'student-ai-connection-unverified');
-        }
         addText('이 점검은 AI 연결과 모델 응답만 확인했습니다. 보안 이벤트 설명은 아직 실행하지 않았습니다.', 'student-ai-connection-separate');
       } else if (status === 'error') {
         const rawCode = error?.code;
@@ -535,6 +531,8 @@ export function createStudentView() {
         addText('AI 연결 점검 상태를 확인할 수 없습니다. 성공으로 간주하지 마세요.', 'student-ai-connection-unverified');
       }
 
+      addText(engineModes[mode] || engineModes.unknown, 'student-ai-connection-mode');
+      addText('보안 이벤트 엔진 상태는 AI 연결 점검 결과와 별도입니다.', 'student-ai-connection-separate');
       return root;
     },
     renderExplanation({ event, explanation, checkedAt } = {}) {
