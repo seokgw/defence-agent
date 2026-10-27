@@ -10,7 +10,7 @@ if(Test-Path -LiteralPath $OutputDir){throw 'OUTPUT_MUST_BE_NEW'}
 New-Item -ItemType Directory -Path $OutputDir | Out-Null
 $OutputDir=(Resolve-Path -LiteralPath $OutputDir).Path
 $manifestPath=Join-Path $PackageDir 'APP_PACKAGE_MANIFEST.json'
-$m=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+$m=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $hash=(Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
 if($m.schema -ne 'alekov.install-package.v2'){throw 'PACKAGE_SCHEMA_UNSUPPORTED'}
 foreach($item in @($m.archive,$m.installer,$m.fullAppRuntime.archive)){
