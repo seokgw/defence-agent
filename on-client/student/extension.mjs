@@ -5,6 +5,9 @@ export function createStudentView() {
     renderIdentity({ me, devices, sessions }) {
       const root = document.createElement('section');
       root.className = 'student-identity';
+      const grid = document.createElement('div');
+      grid.className = 'grid-2';
+      root.append(grid);
 
       const makeElement = (tag, text, className) => {
         const node = document.createElement(tag);
@@ -20,7 +23,7 @@ export function createStudentView() {
           unknown: '확인 불가 (unknown)',
         };
         const mode = labels[resource?.mode] ? resource.mode : 'unknown';
-        section.append(makeElement('p', labels[mode], 'student-identity-mode'));
+        section.append(makeElement('p', labels[mode], 'student-identity-mode tag'));
       };
       const statusLabel = (kind, value) => {
         const labels = kind === 'device'
@@ -38,6 +41,7 @@ export function createStudentView() {
       };
       const addResourceSection = (title, resource, renderData) => {
         const section = document.createElement('section');
+        section.className = 'card';
         section.append(makeElement('h3', title));
         appendMode(section, resource);
 
@@ -51,7 +55,7 @@ export function createStudentView() {
           section.append(makeElement('p', '확인 불가'));
         }
 
-        root.append(section);
+        grid.append(section);
       };
 
       addResourceSection('계정·현재 기기·로그인 세션', me, (section, data) => {
@@ -273,6 +277,7 @@ export function createStudentView() {
           for (const action of event.supportedActions) {
             const actionId = typeof action === 'string' ? action : '확인 불가';
             const button = document.createElement('button');
+            button.className = 'btn';
             button.type = 'button';
             button.textContent = `${actionId} 미지원`;
             button.disabled = true;
@@ -303,6 +308,7 @@ export function createStudentView() {
           const kind = kindNames[event.kind] || `확인 불가(${event.kind ?? 'unknown'})`;
           row.textContent = `사건 ID: ${event.id} · 시각: ${event.at} · 종류: ${kind} · 앱: ${event.appId || '앱을 확인할 수 없음'} · 요약: ${event.summary} `;
           const button = document.createElement('button');
+          button.className = 'btn';
           button.type = 'button';
           button.textContent = `${event.id} 상세`;
           button.addEventListener('click', () => showDetail(event));
@@ -318,6 +324,9 @@ export function createStudentView() {
     renderStatus({ devices, sessions, notifications, diagnostics, mode }) {
       const root = document.createElement('section');
       root.className = 'student-status';
+      const grid = document.createElement('div');
+      grid.className = 'grid-2';
+      root.append(grid);
       const addText = (parent, tag, text, className) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -348,6 +357,7 @@ export function createStudentView() {
 
       const addCollection = (title, resource, kind) => {
         const section = document.createElement('section');
+        section.className = 'card';
         addText(section, 'h3', title);
         addText(section, 'p', `자료 모드: ${modeLabel(resource?.mode)}`, 'student-status-mode');
         if (resource?.status === 'loading') {
@@ -378,7 +388,7 @@ export function createStudentView() {
         } else {
           addText(section, 'p', '확인 불가');
         }
-        root.append(section);
+        grid.append(section);
       };
 
       addCollection('등록 기기', devices, 'device');
@@ -386,6 +396,7 @@ export function createStudentView() {
       addText(root, 'p', '세션 목록은 현재 검증된 연결 하나를 대상으로 하며 과거 세션 전체 목록이 아닙니다.');
 
       const notificationSection = document.createElement('section');
+      notificationSection.className = 'card';
       addText(notificationSection, 'h3', '알림');
       if (!Array.isArray(notifications)) {
         addText(notificationSection, 'p', '알림 자료를 확인할 수 없습니다.');
@@ -403,9 +414,10 @@ export function createStudentView() {
         }
         notificationSection.append(list);
       }
-      root.append(notificationSection);
+      grid.append(notificationSection);
 
       const diagnosticSection = document.createElement('section');
+      diagnosticSection.className = 'card';
       addText(diagnosticSection, 'h3', '진단 정보');
       addText(diagnosticSection, 'p', `자료 모드: ${modeLabel(diagnostics?.mode)}`, 'student-status-mode');
       const diagnosticData = diagnostics?.status === 'ok' ? diagnostics.data : undefined;
@@ -437,6 +449,7 @@ export function createStudentView() {
 
       addText(diagnosticSection, 'p', '도움 요청에 사용할 비밀 없는 진단 항목만 복사합니다.');
       const copyButton = document.createElement('button');
+      copyButton.className = 'btn';
       copyButton.type = 'button';
       copyButton.textContent = '도움정보 복사';
       copyButton.disabled = diagnostics?.status !== 'ok';
@@ -455,7 +468,7 @@ export function createStudentView() {
         }
       });
       diagnosticSection.append(copyButton);
-      root.append(diagnosticSection);
+      grid.append(diagnosticSection);
       return root;
     },
     renderVulnerabilities({ status, mode, data, error } = {}) {
@@ -598,17 +611,17 @@ export function createStudentView() {
       };
 
       if (status === 'idle') {
-        addText('AI 연결 점검 전', 'student-ai-connection-idle');
+        addText('AI 연결 점검 전', 'student-ai-connection-idle state state-empty');
       } else if (status === 'loading') {
-        addText('AI 연결 점검 중', 'student-ai-connection-loading');
+        addText('AI 연결 점검 중', 'student-ai-connection-loading state state-loading');
       } else if (status === 'ok') {
         const authorization = data?.audienceAuthorization;
         if (authorization === 'test') {
-          addText('시험 연결 점검(test)', 'student-ai-connection-ok');
+          addText('시험 연결 점검(test)', 'student-ai-connection-test state state-empty');
         } else if (authorization === 'verified') {
-          addText('AI 연결 정상 · 앱 권한 확인 후 점검(verified)', 'student-ai-connection-ok');
+          addText('AI 연결 정상 · 앱 권한 확인 후 점검(verified)', 'student-ai-connection-ok state state-ok');
         } else {
-          addText('연결 점검 결과 확인 불가 (unknown)', 'student-ai-connection-unverified');
+          addText('연결 점검 결과 확인 불가 (unknown)', 'student-ai-connection-unverified state state-empty');
         }
         const modelCount = Number.isInteger(data?.modelCount) && data.modelCount >= 0
           ? String(data.modelCount)
@@ -626,8 +639,8 @@ export function createStudentView() {
           && !/(?:Bearer\s+\S+|sk-(?:proj-|ant-|svcacct-)?[A-Za-z0-9_-]{8,}|(?:api[_ -]?key|authorization|password|비밀번호|토큰)\s*[:=]\s*\S+)/i.test(rawMessage)
           && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(rawMessage);
         const message = messageIsSafe ? rawMessage : '안전한 오류 메시지를 확인할 수 없습니다.';
-        addText(`AI 연결 점검 실패 · 오류 코드: ${code}`, 'student-ai-connection-error');
-        addText(`오류 메시지: ${message}`, 'student-ai-connection-error');
+        addText(`AI 연결 점검 실패 · 오류 코드: ${code}`, 'student-ai-connection-error state state-error');
+        addText(`오류 메시지: ${message}`, 'student-ai-connection-error state state-error');
 
         if (['ON_AI_PROVISIONING_PENDING', 'ON_AI_AUTHORIZATION_CHANGED', 'SUBJECT_SCOPE_UNVERIFIED'].includes(code)) {
           addText('담당자에게 계정 연결과 앱 권한 준비 상태를 확인해 달라고 요청하세요. 이는 학생의 잘못으로 표시되는 오류가 아닙니다.');
@@ -650,10 +663,10 @@ export function createStudentView() {
         }
         addText('다시 점검하려면 제공 화면의 「AI 연결 점검」 또는 「현재 API 연결 점검」 버튼을 직접 누르세요.');
       } else {
-        addText('AI 연결 점검 상태를 확인할 수 없습니다. 성공으로 간주하지 마세요.', 'student-ai-connection-unverified');
+        addText('AI 연결 점검 상태를 확인할 수 없습니다. 성공으로 간주하지 마세요.', 'student-ai-connection-unverified state state-empty');
       }
 
-      addText(engineModes[mode] || engineModes.unknown, 'student-ai-connection-mode');
+      addText(engineModes[mode] || engineModes.unknown, 'student-ai-connection-mode tag');
       addText('보안 이벤트 엔진 상태는 AI 연결 점검 결과와 별도입니다.', 'student-ai-connection-separate');
       return root;
     },

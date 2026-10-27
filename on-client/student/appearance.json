@@ -1,11 +1,11 @@
 {
   "schema": "alekov.student-appearance.v1",
-  "dashboardPreset": "student-first",
+  "dashboardPreset": "compact",
   "appName": "코덱스",
   "palette": {
-    "accent": "#2563eb",
-    "surface": "#ffffff",
-    "background": "#f2f5fa"
+    "accent": "#1E3A8A",
+    "background": "#F3F6FB",
+    "surface": "#FFFFFF"
   },
   "icon": "brand-icon.png"
 }

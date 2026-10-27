@@ -6,7 +6,7 @@ for(let y=0;y<width;y++)for(let x=0;x<width;x++){
  const i=y*(width*4+1)+1+x*4;
  const dx=Math.max(24-x,0,x-231),dy=Math.max(24-y,0,y-231);
  if(dx*dx+dy*dy>24*24)continue;
- rows[i]=37;rows[i+1]=99;rows[i+2]=235;rows[i+3]=255;
+ rows[i]=30;rows[i+1]=58;rows[i+2]=138;rows[i+3]=255;
  const px=x-128,py=y-128,r=Math.hypot(px,py),a=Math.atan2(py,px);
  if(r>=48&&r<=72&&Math.abs(a)>0.68){rows[i]=255;rows[i+1]=255;rows[i+2]=255;}
 }
