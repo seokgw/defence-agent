@@ -28,10 +28,23 @@ export function pcMetricText(key, metric) {
   return text ? {text, note, state: 'measured'} : {text: '확인 불가', note: '응답의 값이나 단위를 확인할 수 없습니다. 정상으로 판단하지 마세요.', state: 'unavailable'};
 }
 
+export function pcUsagePercent(key, metric) {
+  if (pcMetricText(key, metric).state !== 'measured') return null;
+  if (key === 'cpu') return metric.usagePercent;
+  if (key === 'memory') return metric.usedBytes / metric.totalBytes * 100;
+  if (key === 'disk') return (1 - metric.freeBytes / metric.totalBytes) * 100;
+  return null;
+}
 export function mountPcStatus(host, {fetchImpl = globalThis.fetch?.bind(globalThis), intervalMs = 10000, timeoutMs = 10000} = {}) {
   const doc = host.ownerDocument, win = doc.defaultView;
   const make = (tag, text, cls) => {const node = doc.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node;};
   const heading = make('h2', '내 PC 상태');
+  const masthead = make('div', '', 'pc-masthead');
+  const titleGroup = make('div', '', 'pc-title-group');
+  titleGroup.append(make('p', 'LOCAL RESOURCE MONITOR', 'pc-eyebrow'), heading,
+    make('p', '시스템 리소스 대시보드', 'pc-subtitle'));
+  const scope = make('span', '이 PC · 로컬 조회', 'pc-scope');
+  masthead.append(titleGroup, scope);
   const intro = make('p', '이 앱을 실행한 PC의 값을 읽습니다. 제공된 조회 기능이며 학생 구현 성취와 구분합니다. 이 결과는 AI나 외부 서버로 자동 전송하지 않습니다.', 'muted');
   const refresh = make('button', '내 PC 확인', 'btn'); refresh.type = 'button';
   const label = make('label', '', 'pc-auto'); const auto = doc.createElement('input'); auto.type = 'checkbox';
@@ -41,17 +54,31 @@ export function mountPcStatus(host, {fetchImpl = globalThis.fetch?.bind(globalTh
   const rows = new Map();
   for (const [key, title] of Object.entries({cpu: 'CPU', memory: '메모리', disk: '디스크', network: '네트워크', firewall: 'Windows 방화벽', events: 'Windows 기록'})) {
     const article = make('article', '', 'pc-metric'), value = make('p', '아직 조회하지 않음', 'pc-value'), note = make('p', '', 'muted');
-    article.append(make('h3', title), value, note); grid.append(article); rows.set(key, {article, value, note});
+    article.dataset.metric = key;
+    const cardHead = make('div', '', 'pc-card-head');
+    const badge = make('span', '조회 전', 'pc-badge');
+    cardHead.append(make('h3', title), badge);
+    const meter = make('progress', '', 'pc-meter'); meter.max = 100; meter.hidden = true;
+    meter.setAttribute('aria-label', title + ' 사용률');
+    const meterLabel = make('p', '', 'pc-meter-label'); meterLabel.hidden = true;
+    article.append(cardHead, value, meter, meterLabel, note);
+    grid.append(article); rows.set(key, {article, value, note, badge, meter, meterLabel});
   }
-  host.replaceChildren(heading, intro, refresh, label, status, grid);
+  const toolbar = make('div', '', 'pc-toolbar');
+  toolbar.append(refresh, label);
+  status.className = 'pc-timestamp';
+  host.replaceChildren(masthead, intro, toolbar, status, grid);
   let disposed = false, controller = null, generation = 0, timer = null;
   function stopTimer() {if (timer !== null) win.clearTimeout(timer); timer = null;}
   function next() {stopTimer(); if (!disposed && auto.checked && !doc.hidden) timer = win.setTimeout(() => {void read();}, Math.max(10000, intervalMs));}
-  function unavailable() {for (const row of rows.values()) {row.article.dataset.state = 'unavailable'; row.value.textContent = '이번 조회 확인 불가'; row.note.textContent = '이전 값을 현재 상태로 표시하지 않습니다.';}}
+  function unavailable() {for (const row of rows.values()) {row.article.dataset.state = 'unavailable'; row.badge.textContent = '확인 불가'; row.meter.hidden = true; row.meterLabel.hidden = true; row.value.textContent = '이번 조회 확인 불가'; row.note.textContent = '이전 값을 현재 상태로 표시하지 않습니다.';}}
   async function read() {
     if (disposed || doc.hidden) return;
     stopTimer(); controller?.abort(); const own = ++generation, abort = new AbortController(); controller = abort;
     refresh.disabled = true; status.textContent = '이 PC에서 읽는 중…';
+    for (const row of rows.values()) {
+      row.badge.textContent = '조회 중'; row.meter.hidden = true; row.meterLabel.hidden = true;
+    }
     let timedOut = false;
     const deadline = win.setTimeout(() => {timedOut = true; abort.abort();}, timeoutMs);
     try {
@@ -67,6 +94,13 @@ export function mountPcStatus(host, {fetchImpl = globalThis.fetch?.bind(globalTh
       for (const [key, row] of rows) {
         const info = pcMetricText(key, data.metrics?.[key]);
         row.article.dataset.state = info.state; row.value.textContent = info.text; row.note.textContent = info.note;
+        row.badge.textContent = info.state === 'measured' ? '실측' : '확인 불가';
+        const ratio = pcUsagePercent(key, data.metrics?.[key]);
+        row.meter.hidden = ratio === null; row.meterLabel.hidden = ratio === null;
+        if (ratio !== null) {
+          row.meter.value = ratio;
+          row.meterLabel.textContent = '사용률 ' + ratio.toFixed(1) + '% · 전체 100%';
+        }
       }
       status.textContent = `이 PC 마지막 실측 · ${new Date(measured).toLocaleString('ko-KR')} · 보안 서버 연결 상태와 별도`;
     } catch {

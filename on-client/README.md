@@ -25,3 +25,13 @@ npm start도 같은 서버를 켭니다. 기본 실행은 실제 회사 시스�
 - 오류 코드별 해결: docs/CONNECTION_TROUBLESHOOT.md
 - 시작 틀 업데이트(내 파일 보존): docs/STARTER_UPDATE.md
 - 실제 회사 시스템(SDP)·앱 안 AI 연결은 담당자가 따로 안내할 때만 씁니다: docs/SDP_HOST_CONNECTION.md, docs/AI_SETUP_GUIDE.md. 이 연결은 앱을 처음 켜고 13~16단계 화면을 만들거나 공식 AI 코드 판정을 받기 위한 전제 조건은 아닙니다. 다만 17단계 이후의 실제 연결과 새 환경 재현은 해당 단계의 기준에 따라 따로 확인합니다.
+
+## 코덱스 PC 대시보드 저장점 · 2026-10-29
+
+「내 PC 확인」에서 CPU·메모리·디스크의 현재 사용률을 막대로 표시하고 네트워크·방화벽·Windows 기록을 요약합니다. 조회 전·조회 중·실측·확인 불가를 텍스트로 구분하며, 실패하거나 오래된 응답의 사용률 막대는 숨깁니다. 과거 추이 그래프나 외부 연결 성공을 뜻하지 않습니다.
+
+실행 위치는 이 README가 있는 on-client 폴더입니다. PowerShell에서 아래 명령을 실행하고 http://127.0.0.1:5189/ 의 「보호 현황 → 내 PC 확인」을 누릅니다.
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1
+
+문법 검사와 모의 DOM 회귀 검사, 2026-10-27 실제 로컬 PC 조회를 확인했습니다. 이번 저장점은 디자인 소스이며 이전에 생성한 setup.exe에는 이 대시보드 변경이 포함되지 않습니다.

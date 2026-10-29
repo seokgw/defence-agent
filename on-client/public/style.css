@@ -268,3 +268,48 @@ main:focus { outline: none; }
   .identity dd, .kv dd { margin-bottom: 6px; }
   .art-explain { float: none; margin: 0 0 8px; }
 }
+
+/* 로컬 PC 대시보드: 기존 조회 계약과 버튼은 유지하고 실측 값만 시각화한다. */
+#pc-status { padding: 0; overflow: hidden; background: #edf2f8; border: 1px solid #cdd8e7; box-shadow: 0 8px 24px #172b4d0b; }
+#pc-status .pc-masthead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 22px 24px; background: #142943; color: #fff; border-bottom: 3px solid #4cc9bc; }
+#pc-status .pc-eyebrow { margin: 0 0 6px; font-size: .66rem; font-weight: 700; letter-spacing: .15em; color: #93c5e9; }
+#pc-status .pc-masthead h2 { margin: 0; color: #fff; font-size: 1.35rem; }
+#pc-status .pc-subtitle { margin: 5px 0 0; font-size: .8rem; color: #c5d5e8; }
+#pc-status .pc-scope { padding: 7px 11px; border: 1px solid #526982; border-radius: 5px; font-size: .75rem; color: #e1edf9; }
+#pc-status > .muted { padding: 0 24px; margin: 16px 0; font-size: .78rem; line-height: 1.65; }
+#pc-status .pc-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 24px; }
+#pc-status .pc-toolbar .btn { background: #1e3a8a; border-color: #1e3a8a; color: #fff; font-weight: 600; }
+#pc-status .pc-toolbar .btn:disabled { opacity: .65; }
+#pc-status .pc-auto { margin-left: 0; font-size: .78rem; color: #43556c; }
+#pc-status .pc-timestamp { margin: 12px 24px 16px; color: #52647c; font: .72rem/1.6 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+#pc-status .pc-metrics { padding: 0 20px 20px; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#pc-status .pc-metric { min-width: 0; padding: 18px; border: 1px solid #d7e0ec; border-top: 3px solid #6c83a0; border-radius: 7px; background: #fff; box-shadow: 0 2px 4px #172b4d05; }
+#pc-status .pc-metric[data-metric="cpu"] { border-top-color: #3879d9; }
+#pc-status .pc-metric[data-metric="memory"] { border-top-color: #158477; }
+#pc-status .pc-metric[data-metric="disk"] { border-top-color: #7b60b5; }
+#pc-status .pc-card-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+#pc-status .pc-card-head h3 { margin: 0; color: #4c6078; font-size: .8rem; font-weight: 650; }
+#pc-status .pc-badge { background: #edf2f8; color: #52647c; padding: 2px 6px; border-radius: 4px; font-size: .65rem; white-space: nowrap; }
+#pc-status .pc-value { margin: 16px 0 12px; color: #182e4a; font-size: 1.45rem; font-weight: 700; line-height: 1.35; letter-spacing: -.025em; font-variant-numeric: tabular-nums; }
+#pc-status .pc-metric:nth-child(n+4) .pc-value { font-size: 1.05rem; line-height: 1.6; }
+#pc-status .pc-metric > .muted { margin: 14px 0 0; font-size: .73rem; line-height: 1.65; color: #607188; }
+#pc-status .pc-meter { appearance: none; display: block; width: 100%; height: 8px; border: 0; border-radius: 4px; overflow: hidden; background: #e8eef6; accent-color: #3879d9; }
+#pc-status .pc-meter::-webkit-progress-bar { background: #e8eef6; border-radius: 4px; }
+#pc-status .pc-meter::-webkit-progress-value { background: #3879d9; border-radius: 4px; }
+#pc-status [data-metric="memory"] .pc-meter { accent-color: #158477; }
+#pc-status [data-metric="memory"] .pc-meter::-webkit-progress-value { background: #158477; }
+#pc-status [data-metric="disk"] .pc-meter { accent-color: #7b60b5; }
+#pc-status [data-metric="disk"] .pc-meter::-webkit-progress-value { background: #7b60b5; }
+#pc-status .pc-meter::-moz-progress-bar { background: currentColor; }
+#pc-status .pc-meter-label { font: .65rem/1.5 ui-monospace, Consolas, monospace; margin: 6px 0 0; color: #607188; }
+#pc-status [hidden] { display: none !important; }
+#pc-status .pc-metric[data-state="unavailable"] .pc-badge { background: #f3edf9; color: #6c488d; }
+@media (max-width: 1100px) {
+  #pc-status .pc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  #pc-status .pc-metrics { grid-template-columns: minmax(0, 1fr); padding: 0 12px 12px; }
+  #pc-status .pc-masthead { padding: 18px 16px; }
+  #pc-status .pc-toolbar, #pc-status > .muted { padding-left: 16px; padding-right: 16px; }
+  #pc-status .pc-timestamp { margin-left: 16px; margin-right: 16px; }
+}
